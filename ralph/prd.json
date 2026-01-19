@@ -1,0 +1,535 @@
+{
+  "project": "ShareMyRun",
+  "branchName": "ralph/share-my-run-mvp",
+  "description": "iOS app that empowers fitness enthusiasts to create beautiful, customizable images of their workouts for sharing on social media. Imports workouts from Apple Health and lets users choose which statistics to display, how to style them, and what background to use.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Initialize Xcode project with SwiftUI and SwiftData",
+      "description": "As a developer, I need a properly configured Xcode project so that I have a foundation to build on.",
+      "acceptanceCriteria": [
+        "Xcode project created with SwiftUI lifecycle",
+        "SwiftData configured as persistence layer",
+        "MVVM folder structure established (Models, Views, ViewModels, Services)",
+        "Swift Testing target configured for unit tests",
+        "XCUITest target configured for UI tests",
+        "Project builds and runs on iOS 17+ simulator",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Set up HealthKit entitlements and permissions",
+      "description": "As a developer, I need HealthKit properly configured so the app can request workout data access.",
+      "acceptanceCriteria": [
+        "HealthKit capability added to project",
+        "Info.plist contains NSHealthShareUsageDescription",
+        "HealthService protocol defined with methods: requestAuthorization(), isAuthorized()",
+        "Mock HealthService created for testing that returns configurable results",
+        "Unit tests pass for permission request flow",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Set up Photos framework entitlements",
+      "description": "As a developer, I need photo library access configured so users can select background images.",
+      "acceptanceCriteria": [
+        "Photo Library capability added to project",
+        "Info.plist contains NSPhotoLibraryUsageDescription",
+        "PhotoService protocol defined with methods: requestAuthorization(), fetchLastPhoto(), pickPhoto()",
+        "Mock PhotoService created for testing",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Create Workout data model",
+      "description": "As a developer, I need a Workout model to store imported workout data locally.",
+      "acceptanceCriteria": [
+        "SwiftData @Model class Workout with properties: id (UUID), type (WorkoutType), startDate (Date), endDate (Date), distance (Double?), duration (TimeInterval), route ([Coordinate]?), calories (Double?), avgHeartRate (Double?), maxHeartRate (Double?), avgPace (Double?), elevationGain (Double?)",
+        "WorkoutType enum with cases: running, cycling, swimming, hiking, walking, other",
+        "Coordinate struct with latitude and longitude properties",
+        "Unit tests verify model initialization",
+        "Unit tests verify model persistence with SwiftData",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Create ShareConfiguration data model",
+      "description": "As a developer, I need a model to persist user's sharing preferences and styling choices.",
+      "acceptanceCriteria": [
+        "SwiftData @Model class ShareConfiguration with properties: selectedStats ([StatisticType]), backgroundType (BackgroundType), fontName (String), fontSize (CGFloat), textColor (String - hex), textPosition (TextPosition), selectedPhotoData (Data?)",
+        "BackgroundType enum with cases: routeMap, lastPhoto, selectedPhoto",
+        "TextPosition enum with cases: topLeft, topRight, bottomLeft, bottomRight, center",
+        "Optional relationship to Workout (one config per workout)",
+        "Unit tests verify model persistence",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Create StatisticType enum and display logic",
+      "description": "As a developer, I need a way to represent available statistics and format them for display.",
+      "acceptanceCriteria": [
+        "StatisticType enum with cases: distance, duration, pace, startTime, calories, avgHeartRate, maxHeartRate, elevationGain",
+        "Each case has displayName computed property (e.g., 'Distance', 'Avg Heart Rate')",
+        "Each case has unit computed property (e.g., 'mi', 'bpm', 'ft')",
+        "StatFormatter struct with static methods to format each stat type",
+        "Distance formatted as 'X.XX mi'",
+        "Duration formatted as 'H:MM:SS' or 'MM:SS'",
+        "Pace formatted as 'X:XX /mi'",
+        "Heart rate formatted as 'XXX bpm'",
+        "Unit tests cover all formatting including edge cases (zero, nil, large values)",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "Implement HealthService workout fetch",
+      "description": "As a user, I want to see my recent workouts so I can choose one to share.",
+      "acceptanceCriteria": [
+        "HealthService has fetchWorkouts(from: Date, to: Date) async throws -> [Workout] method",
+        "Fetches workouts from HealthKit for last 30 days by default",
+        "Filters to GPS-based cardio types: running, cycling, swimming, hiking, walking",
+        "Converts HKWorkout to app's Workout model correctly",
+        "Returns empty array (not error) when no workouts found",
+        "Throws HealthServiceError.permissionDenied when not authorized",
+        "Unit tests with MockHealthStore verify fetch logic",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "Fetch workout route data from HealthKit",
+      "description": "As a user, I want my workout route included so I can display it as a map background.",
+      "acceptanceCriteria": [
+        "HealthService has fetchRoute(for workout: HKWorkout) async throws -> [Coordinate]? method",
+        "Extracts CLLocation array from HKWorkoutRoute",
+        "Converts CLLocation to app's Coordinate model",
+        "Returns nil for workouts without route data (treadmill, pool)",
+        "Stores route coordinates in Workout model during fetch",
+        "Unit tests verify route extraction with mock data",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "Fetch detailed workout statistics from HealthKit",
+      "description": "As a user, I want detailed stats like heart rate and elevation so I can display them.",
+      "acceptanceCriteria": [
+        "HealthService fetches average heart rate for workout time range",
+        "HealthService fetches max heart rate for workout time range",
+        "HealthService fetches elevation gain from workout metadata",
+        "Calculates average pace from distance/duration",
+        "Missing data stored as nil in Workout model (not zero)",
+        "Unit tests verify stat calculations with known inputs",
+        "Typecheck passes"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-010",
+      "title": "Create WorkoutListViewModel",
+      "description": "As a developer, I need a ViewModel to manage workout list state and business logic.",
+      "acceptanceCriteria": [
+        "WorkoutListViewModel as @Observable class",
+        "Properties: workouts ([Workout]), isLoading (Bool), errorMessage (String?), selectedFilter (WorkoutType?)",
+        "fetchWorkouts() method calls HealthService and updates state",
+        "isLoading true during fetch, false after completion",
+        "errorMessage populated on failure, nil on success",
+        "Unit tests verify all state transitions: loading, success, error",
+        "Typecheck passes"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-011",
+      "title": "Create workout list view",
+      "description": "As a user, I want to see a list of my recent workouts so I can select one to customize and share.",
+      "acceptanceCriteria": [
+        "WorkoutListView with SwiftUI List displaying workouts",
+        "Sorted by date with newest first",
+        "Each row shows: workout type SF Symbol icon, formatted date, distance, duration",
+        "Pull-to-refresh triggers fetchWorkouts()",
+        "Empty state view when workouts array is empty",
+        "Loading spinner (ProgressView) when isLoading is true",
+        "Error alert when errorMessage is not nil",
+        "Typecheck passes",
+        "Verify in simulator: list displays, pull-to-refresh works"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-012",
+      "title": "Implement workout type filtering",
+      "description": "As a user, I want to filter workouts by type so I can find a specific activity quickly.",
+      "acceptanceCriteria": [
+        "Horizontal ScrollView of filter chips above workout list",
+        "Filter options: All, Running, Cycling, Swimming, Hiking, Walking",
+        "Tapping chip updates selectedFilter in ViewModel",
+        "List filters to show only matching workout types",
+        "All chip shows unfiltered list",
+        "Selected chip has distinct visual style (filled vs outlined)",
+        "Empty state shows 'No [type] workouts found' when filter yields no results",
+        "Unit tests verify filtering logic in ViewModel",
+        "Typecheck passes",
+        "Verify in simulator: filters work correctly"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-013",
+      "title": "Create ShareEditorViewModel",
+      "description": "As a developer, I need a ViewModel to manage editor state and image generation.",
+      "acceptanceCriteria": [
+        "ShareEditorViewModel as @Observable class",
+        "Initialized with Workout parameter",
+        "Properties: workout (Workout), configuration (ShareConfiguration), previewImage (UIImage?)",
+        "Default configuration created if none exists for workout",
+        "Methods: updateSelectedStats(), updateBackgroundType(), updateFont(), updateFontSize(), updateTextColor(), updateTextPosition()",
+        "Configuration auto-saved to SwiftData on changes",
+        "Unit tests verify state management and persistence",
+        "Typecheck passes"
+      ],
+      "priority": 13,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-014",
+      "title": "Create share editor view skeleton",
+      "description": "As a user, I want an editor screen where I can customize my workout image.",
+      "acceptanceCriteria": [
+        "Navigation from WorkoutListView to ShareEditorView on row tap",
+        "Selected workout passed to ShareEditorView",
+        "Preview area (Image view) in upper portion showing placeholder",
+        "Scrollable customization area in lower portion with section headers",
+        "Share button in navigation bar (non-functional for now)",
+        "Back navigation returns to workout list",
+        "Typecheck passes",
+        "Verify in simulator: navigation works, layout displays correctly"
+      ],
+      "priority": 14,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-015",
+      "title": "Implement stat selection interface",
+      "description": "As a user, I want to choose which statistics appear on my image.",
+      "acceptanceCriteria": [
+        "Stats section in editor with multi-select list",
+        "Each row shows: checkbox, stat name, current value from workout",
+        "Stats unavailable for this workout (nil values) are grayed and not selectable",
+        "Maximum 6 stats can be selected - additional taps show alert",
+        "Minimum 1 stat required - cannot deselect last stat",
+        "Selection updates configuration.selectedStats immediately",
+        "Unit tests verify selection logic and constraints",
+        "Typecheck passes",
+        "Verify in simulator: selection works, constraints enforced"
+      ],
+      "priority": 15,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-016",
+      "title": "Implement background selection interface",
+      "description": "As a user, I want to choose my image background from three options.",
+      "acceptanceCriteria": [
+        "Background section with Picker (segmented style): Map, Last Photo, Choose Photo",
+        "Map option disabled with explanation if workout has no route",
+        "Selecting Last Photo calls PhotoService.fetchLastPhoto()",
+        "Selecting Choose Photo presents PHPickerViewController",
+        "Selected photo stored in configuration.selectedPhotoData",
+        "Selection updates configuration.backgroundType immediately",
+        "Unit tests verify background switching logic",
+        "Typecheck passes",
+        "Verify in simulator: picker works, photo selection works"
+      ],
+      "priority": 16,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-017",
+      "title": "Implement text styling controls",
+      "description": "As a user, I want to customize how the statistics text looks.",
+      "acceptanceCriteria": [
+        "Style section with font picker (Picker with .menu style)",
+        "Font options: SF Pro, Helvetica Neue, Avenir, Georgia, Menlo (5 fonts)",
+        "Font size slider with range 12-32, shows current value",
+        "Color picker using ColorPicker for text color",
+        "Position picker with 5 options: Top Left, Top Right, Bottom Left, Bottom Right, Center",
+        "All changes update configuration immediately",
+        "Typecheck passes",
+        "Verify in simulator: all controls work and update configuration"
+      ],
+      "priority": 17,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-018",
+      "title": "Create route map renderer",
+      "description": "As a developer, I need to render the workout route as a styled map image.",
+      "acceptanceCriteria": [
+        "MapRenderer service with renderRouteMap(coordinates: [Coordinate], size: CGSize) async -> UIImage? method",
+        "Uses MKMapSnapshotter to capture map image",
+        "Draws route as polyline overlay on snapshot",
+        "Route line: 4pt width, accent color, rounded caps",
+        "Map region auto-fits route with padding",
+        "Returns nil if coordinates are empty",
+        "Supports both 1080x1080 and 1080x1920 sizes",
+        "Unit tests verify method doesn't crash with valid/empty input",
+        "Typecheck passes"
+      ],
+      "priority": 18,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-019",
+      "title": "Create statistics overlay renderer",
+      "description": "As a developer, I need to render selected statistics as text overlay on the image.",
+      "acceptanceCriteria": [
+        "OverlayRenderer service with renderStatsOverlay(stats: [(StatisticType, String)], config: ShareConfiguration, size: CGSize) -> UIImage method",
+        "Renders stats as formatted text block using configured font, size, color",
+        "Positions text according to config.textPosition with 20pt padding from edges",
+        "Adds 2pt dark shadow offset (1,1) for readability on light backgrounds",
+        "Handles 1-6 stats stacked vertically",
+        "Each stat shows: icon, name, value (e.g., '🏃 Distance: 5.2 mi')",
+        "Unit tests verify text positioning for each TextPosition case",
+        "Typecheck passes"
+      ],
+      "priority": 19,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-020",
+      "title": "Create composite image generator",
+      "description": "As a developer, I need to combine background and overlay into final shareable image.",
+      "acceptanceCriteria": [
+        "ImageGenerator service with generateImage(workout: Workout, config: ShareConfiguration, format: ImageFormat) async -> UIImage? method",
+        "ImageFormat enum: square (1080x1080), story (1080x1920)",
+        "Composites background image with stats overlay using Core Graphics",
+        "For routeMap: uses MapRenderer output as background",
+        "For lastPhoto/selectedPhoto: scales and crops photo to fill",
+        "Adds subtle 'ShareMyRun' watermark in bottom corner (small, semi-transparent)",
+        "Returns nil if background cannot be generated",
+        "Unit tests verify composition logic for each background type",
+        "Typecheck passes"
+      ],
+      "priority": 20,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-021",
+      "title": "Connect image preview to generator",
+      "description": "As a user, I want to see a live preview of my customized image as I make changes.",
+      "acceptanceCriteria": [
+        "ShareEditorViewModel calls ImageGenerator when configuration changes",
+        "Debounce updates by 0.3 seconds to avoid excessive regeneration",
+        "previewImage property updated with generated image",
+        "Preview area in ShareEditorView displays previewImage",
+        "Loading indicator shown while image generates",
+        "Preview aspect ratio matches selected format",
+        "Typecheck passes",
+        "Verify in simulator: preview updates when changing settings"
+      ],
+      "priority": 21,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-022",
+      "title": "Implement share sheet integration",
+      "description": "As a user, I want to share my customized image to any app via the system share sheet.",
+      "acceptanceCriteria": [
+        "Share button in navigation bar triggers share flow",
+        "Generates final image at full resolution before sharing",
+        "Presents UIActivityViewController with generated UIImage",
+        "Includes text caption: '[WorkoutType] - [Distance] in [Duration]'",
+        "Loading indicator while generating final image",
+        "Handles share completion callback (dismisses sheet)",
+        "Typecheck passes",
+        "Verify in simulator: share sheet appears with image"
+      ],
+      "priority": 22,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-023",
+      "title": "Save image to camera roll option",
+      "description": "As a user, I want to save my image to my camera roll as an alternative to sharing.",
+      "acceptanceCriteria": [
+        "Save to Photos button in editor (below preview or in toolbar)",
+        "Requests photo library add-only permission if not granted",
+        "Generates final image and saves via PHPhotoLibrary",
+        "Shows success toast/alert: 'Image saved to Photos'",
+        "Shows error alert if save fails with reason",
+        "Typecheck passes",
+        "Verify in simulator: save button works, permission requested if needed"
+      ],
+      "priority": 23,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-024",
+      "title": "Create subscription/Pro tier data model",
+      "description": "As a developer, I need a model to track Pro subscription status for future use.",
+      "acceptanceCriteria": [
+        "SwiftData @Model class UserSubscription with: isPro (Bool), expirationDate (Date?)",
+        "SubscriptionService protocol with isPro() -> Bool method",
+        "MockSubscriptionService for testing returns configurable value",
+        "Default implementation returns false (free tier) - hardcoded for MVP",
+        "Unit tests verify subscription check logic",
+        "Typecheck passes"
+      ],
+      "priority": 24,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-025",
+      "title": "Create automatic sharing preferences model (stubbed)",
+      "description": "As a developer, I need a stubbed data model for automatic sharing configuration.",
+      "acceptanceCriteria": [
+        "SwiftData @Model class AutoShareConfig with: isEnabled (Bool), destinations ([String]), defaultTemplateId (UUID?)",
+        "All properties default to disabled/empty state",
+        "Model defined but not actively used in MVP",
+        "Typecheck passes"
+      ],
+      "priority": 25,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-026",
+      "title": "Add Settings screen with Pro section",
+      "description": "As a user, I want to see app settings and what Pro features will offer.",
+      "acceptanceCriteria": [
+        "SettingsView accessible from WorkoutListView (gear icon in toolbar)",
+        "Settings sections: General, Pro Features, About",
+        "Pro Features section shows 'Automatic Sharing' row with lock icon",
+        "Tapping locked row shows alert: 'Pro Feature - Coming Soon'",
+        "'Upgrade to Pro' button styled prominently (disabled in MVP)",
+        "About section shows app version",
+        "Typecheck passes",
+        "Verify in simulator: settings navigable, Pro section displays correctly"
+      ],
+      "priority": 26,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-027",
+      "title": "Implement onboarding flow",
+      "description": "As a new user, I want a brief onboarding so I understand how to use the app.",
+      "acceptanceCriteria": [
+        "OnboardingView with 3 pages using TabView with PageTabViewStyle",
+        "Page 1: Welcome - app name, icon, tagline",
+        "Page 2: HealthKit - explains workout import, shows permission request button",
+        "Page 3: Get Started - brief feature overview, 'Get Started' button",
+        "Page indicators at bottom",
+        "Skip button on pages 1-2",
+        "Completing onboarding sets UserDefaults.hasCompletedOnboarding = true",
+        "App shows onboarding only when hasCompletedOnboarding is false",
+        "Typecheck passes",
+        "Verify in simulator: onboarding flow works, only shows once"
+      ],
+      "priority": 27,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-028",
+      "title": "Handle HealthKit permission denied state",
+      "description": "As a user who denied permissions, I want clear guidance on how to enable them.",
+      "acceptanceCriteria": [
+        "WorkoutListView shows PermissionDeniedView when HealthService.isAuthorized() returns false",
+        "PermissionDeniedView explains why workouts aren't showing",
+        "'Open Settings' button opens UIApplication.openSettingsURLString",
+        "App re-checks permission when returning to foreground (scenePhase change)",
+        "Typecheck passes",
+        "Verify in simulator: permission denied state displays correctly"
+      ],
+      "priority": 28,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-029",
+      "title": "Implement error handling and user feedback",
+      "description": "As a user, I want clear feedback when something goes wrong.",
+      "acceptanceCriteria": [
+        "AppError enum with cases: healthKitError, photoError, imageGenerationError, saveError",
+        "Each case has localizedDescription for user-friendly message",
+        "Toast component for transient success/error messages (auto-dismiss after 3s)",
+        "Alert used for errors requiring acknowledgment",
+        "Retry button shown for retryable errors (network, transient failures)",
+        "All async operations surface errors to UI (no silent failures)",
+        "Typecheck passes"
+      ],
+      "priority": 29,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-030",
+      "title": "Add accessibility support",
+      "description": "As a user with accessibility needs, I want to use the app with VoiceOver and Dynamic Type.",
+      "acceptanceCriteria": [
+        "All buttons have .accessibilityLabel describing action",
+        "Workout rows have .accessibilityLabel with full workout summary",
+        "Images have .accessibilityLabel describing content",
+        "All text views support Dynamic Type (use .font(.body) etc, not fixed sizes)",
+        "Color contrast meets WCAG AA (4.5:1 for text)",
+        "Focus order follows logical reading order",
+        "Typecheck passes",
+        "Verify with Accessibility Inspector: no warnings"
+      ],
+      "priority": 30,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}
