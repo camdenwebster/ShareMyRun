@@ -1,0 +1,30 @@
+{
+  "phase": "bootstrap",
+  "phase_started": "2026-01-18T19:30:00Z",
+  "total_tasks": 29,
+  "completed_tasks": 0,
+  "current_epic": 1,
+  "project": {
+    "name": "ShareMyRun",
+    "type": "ios-app",
+    "framework": "swiftui",
+    "persistence": "swiftdata",
+    "min_ios": "17.0",
+    "architecture": "mvvm"
+  },
+  "dependencies": {
+    "frameworks": ["HealthKit", "PhotosUI", "MapKit", "CoreGraphics"],
+    "external": []
+  },
+  "quality_gates": {
+    "typecheck": false,
+    "unit_tests": false,
+    "ui_tests": false,
+    "coverage": 0
+  },
+  "metrics": {
+    "tokens_used": 0,
+    "agents_spawned": 0,
+    "retries": 0
+  }
+}

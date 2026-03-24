@@ -2,6 +2,14 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSHealthShareUsageDescription</key>
+	<string>ShareMyRun needs access to your workout data to create shareable images of your activities.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>ShareMyRun needs write access to save workout metadata.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>ShareMyRun needs access to your photo library to use images as backgrounds for your workout shares.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>ShareMyRun needs permission to save generated workout images to your photo library.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

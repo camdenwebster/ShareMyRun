@@ -8,10 +8,20 @@
 import Testing
 @testable import ShareMyRun
 
+@Suite("Subscription Tests")
 struct ShareMyRunTests {
+    @Test("Mock subscription service unlocks Pro in debug builds")
+    func mockSubscriptionServiceUnlocksProInDebugBuilds() async {
+        let service = MockSubscriptionService()
+        let isPro = await service.isPro
+        let subscription = await service.getSubscription()
 
-    @Test func example() async throws {
-        // Write your test here and use APIs like `#expect(...)` to check expected conditions.
+        #if DEBUG
+        #expect(isPro == true)
+        #expect(subscription.isPro == true)
+        #else
+        #expect(isPro == false)
+        #expect(subscription.isPro == false)
+        #endif
     }
-
 }

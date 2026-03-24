@@ -1,0 +1,497 @@
+{
+  "tasks": [
+    {
+      "id": "US-001",
+      "epic": 1,
+      "title": "Initialize Xcode project with SwiftUI and SwiftData",
+      "priority": 1,
+      "status": "pending",
+      "acceptance_criteria": [
+        "Xcode project created with SwiftUI lifecycle",
+        "SwiftData configured as persistence layer",
+        "MVVM folder structure established",
+        "Swift Testing target configured",
+        "XCUITest target configured",
+        "Project builds on iOS 17+ simulator",
+        "Typecheck passes"
+      ],
+      "dependencies": [],
+      "estimated_complexity": "simple"
+    },
+    {
+      "id": "US-002",
+      "epic": 1,
+      "title": "Set up HealthKit entitlements and permissions",
+      "priority": 2,
+      "status": "pending",
+      "acceptance_criteria": [
+        "HealthKit capability added to project",
+        "Info.plist contains health share usage description",
+        "HealthService protocol defined for DI",
+        "Mock HealthService created for testing",
+        "Unit tests pass for permission request flow",
+        "Typecheck passes"
+      ],
+      "dependencies": ["US-001"],
+      "estimated_complexity": "simple"
+    },
+    {
+      "id": "US-003",
+      "epic": 1,
+      "title": "Set up Photos framework entitlements",
+      "priority": 3,
+      "status": "pending",
+      "acceptance_criteria": [
+        "Photo Library capability added",
+        "Info.plist contains photo library usage description",
+        "PhotoService protocol defined for DI",
+        "Mock PhotoService created for testing",
+        "Typecheck passes"
+      ],
+      "dependencies": ["US-001"],
+      "estimated_complexity": "simple"
+    },
+    {
+      "id": "US-004",
+      "epic": 2,
+      "title": "Create Workout data model",
+      "priority": 4,
+      "status": "pending",
+      "acceptance_criteria": [
+        "SwiftData @Model class for Workout",
+        "Properties: id, type, startDate, endDate, distance, duration, route, calories, avgHeartRate, maxHeartRate, avgPace, elevationGain",
+        "WorkoutType enum: running, cycling, swimming, hiking, walking, other",
+        "Unit tests verify model initialization and persistence",
+        "Typecheck passes"
+      ],
+      "dependencies": ["US-001"],
+      "estimated_complexity": "simple"
+    },
+    {
+      "id": "US-005",
+      "epic": 2,
+      "title": "Create ShareConfiguration data model",
+      "priority": 5,
+      "status": "pending",
+      "acceptance_criteria": [
+        "SwiftData @Model class for ShareConfiguration",
+        "Properties: selectedStats, backgroundType, fontName, fontSize, textColor, textPosition",
+        "BackgroundType enum: routeMap, lastPhoto, selectedPhoto",
+        "TextPosition enum: topLeft, topRight, bottomLeft, bottomRight, center",
+        "Relationship to Workout",
+        "Unit tests verify persistence",
+        "Typecheck passes"
+      ],
+      "dependencies": ["US-004"],
+      "estimated_complexity": "simple"
+    },
+    {
+      "id": "US-006",
+      "epic": 2,
+      "title": "Create StatisticType enum and display logic",
+      "priority": 6,
+      "status": "pending",
+      "acceptance_criteria": [
+        "StatisticType enum: distance, duration, pace, startTime, calories, avgHeartRate, maxHeartRate, elevationGain, effort",
+        "displayName and unit properties",
+        "Formatter functions for each stat type",
+        "Unit tests cover all formatting edge cases",
+        "Typecheck passes"
+      ],
+      "dependencies": ["US-004"],
+      "estimated_complexity": "simple"
+    },
+    {
+      "id": "US-007",
+      "epic": 3,
+      "title": "Fetch workouts from HealthKit",
+      "priority": 7,
+      "status": "pending",
+      "acceptance_criteria": [
+        "HealthService fetches workouts from last 30 days",
+        "Filters to GPS-based cardio types only",
+        "Converts HKWorkout to Workout model",
+        "Handles permission denied gracefully",
+        "Unit tests with mock HealthStore",
+        "Typecheck passes"
+      ],
+      "dependencies": ["US-002", "US-004"],
+      "estimated_complexity": "moderate"
+    },
+    {
+      "id": "US-008",
+      "epic": 3,
+      "title": "Fetch workout route data from HealthKit",
+      "priority": 8,
+      "status": "pending",
+      "acceptance_criteria": [
+        "Fetches CLLocation array for route",
+        "Handles workouts without route data",
+        "Stores route coordinates in Workout model",
+        "Unit tests verify route extraction",
+        "Typecheck passes"
+      ],
+      "dependencies": ["US-007"],
+      "estimated_complexity": "moderate"
+    },
+    {
+      "id": "US-009",
+      "epic": 3,
+      "title": "Fetch detailed workout statistics from HealthKit",
+      "priority": 9,
+      "status": "pending",
+      "acceptance_criteria": [
+        "Fetches average and max heart rate",
+        "Fetches elevation gain data",
+        "Calculates average pace",
+        "Handles missing data gracefully",
+        "Unit tests verify stat calculations",
+        "Typecheck passes"
+      ],
+      "dependencies": ["US-007"],
+      "estimated_complexity": "moderate"
+    },
+    {
+      "id": "US-010",
+      "epic": 4,
+      "title": "Create workout list view",
+      "priority": 10,
+      "status": "pending",
+      "acceptance_criteria": [
+        "SwiftUI List sorted by date",
+        "Each row: workout type icon, date, distance, duration",
+        "Pull-to-refresh triggers HealthKit sync",
+        "Empty state when no workouts",
+        "Loading state while fetching",
+        "Typecheck passes",
+        "Verify in simulator"
+      ],
+      "dependencies": ["US-007", "US-011"],
+      "estimated_complexity": "moderate"
+    },
+    {
+      "id": "US-011",
+      "epic": 4,
+      "title": "Create workout list ViewModel",
+      "priority": 11,
+      "status": "pending",
+      "acceptance_criteria": [
+        "WorkoutListViewModel as @Observable class",
+        "Publishes workouts array, isLoading, error state",
+        "fetchWorkouts() coordinates HealthService calls",
+        "Handles errors appropriately",
+        "Unit tests verify all state transitions",
+        "Typecheck passes"
+      ],
+      "dependencies": ["US-007"],
+      "estimated_complexity": "simple"
+    },
+    {
+      "id": "US-012",
+      "epic": 4,
+      "title": "Implement workout type filtering",
+      "priority": 12,
+      "status": "pending",
+      "acceptance_criteria": [
+        "Filter chip/segmented control above list",
+        "Options: All, Running, Cycling, Swimming, Hiking, Other",
+        "Filter persists during session",
+        "Empty state for no filter results",
+        "Unit tests verify filtering logic",
+        "Typecheck passes",
+        "Verify in simulator"
+      ],
+      "dependencies": ["US-010", "US-011"],
+      "estimated_complexity": "simple"
+    },
+    {
+      "id": "US-013",
+      "epic": 5,
+      "title": "Create share editor view skeleton",
+      "priority": 13,
+      "status": "pending",
+      "acceptance_criteria": [
+        "Navigation from workout list to editor",
+        "Preview area showing shareable image",
+        "Bottom sheet for customization options",
+        "Share button in navigation bar",
+        "Typecheck passes",
+        "Verify in simulator"
+      ],
+      "dependencies": ["US-010", "US-014"],
+      "estimated_complexity": "moderate"
+    },
+    {
+      "id": "US-014",
+      "epic": 5,
+      "title": "Create share editor ViewModel",
+      "priority": 14,
+      "status": "pending",
+      "acceptance_criteria": [
+        "ShareEditorViewModel as @Observable class",
+        "Holds Workout and ShareConfiguration",
+        "Methods for updating each configuration property",
+        "Saves configuration to SwiftData on changes",
+        "Unit tests verify state management",
+        "Typecheck passes"
+      ],
+      "dependencies": ["US-005"],
+      "estimated_complexity": "simple"
+    },
+    {
+      "id": "US-015",
+      "epic": 5,
+      "title": "Implement stat selection interface",
+      "priority": 15,
+      "status": "pending",
+      "acceptance_criteria": [
+        "Multi-select list of StatisticTypes",
+        "Shows current value for each stat",
+        "Unavailable stats disabled/grayed",
+        "Selection updates preview in real-time",
+        "Maximum 6 stats can be selected",
+        "Unit tests verify selection logic",
+        "Typecheck passes",
+        "Verify in simulator"
+      ],
+      "dependencies": ["US-006", "US-013", "US-014"],
+      "estimated_complexity": "moderate"
+    },
+    {
+      "id": "US-016",
+      "epic": 5,
+      "title": "Implement background selection interface",
+      "priority": 16,
+      "status": "pending",
+      "acceptance_criteria": [
+        "Segmented control: Map, Last Photo, Choose Photo",
+        "Map option disabled if no route data",
+        "Last Photo loads most recent camera roll image",
+        "Choose Photo opens PHPickerViewController",
+        "Selection updates preview in real-time",
+        "Unit tests verify background switching",
+        "Typecheck passes",
+        "Verify in simulator"
+      ],
+      "dependencies": ["US-003", "US-013", "US-014"],
+      "estimated_complexity": "moderate"
+    },
+    {
+      "id": "US-017",
+      "epic": 5,
+      "title": "Implement text styling controls",
+      "priority": 17,
+      "status": "pending",
+      "acceptance_criteria": [
+        "Font picker with 5-8 curated fonts",
+        "Font size slider (12-32pt)",
+        "Color picker for text color",
+        "Position picker (5 options)",
+        "Changes update preview in real-time",
+        "Typecheck passes",
+        "Verify in simulator"
+      ],
+      "dependencies": ["US-013", "US-014"],
+      "estimated_complexity": "moderate"
+    },
+    {
+      "id": "US-018",
+      "epic": 6,
+      "title": "Create route map renderer",
+      "priority": 18,
+      "status": "pending",
+      "acceptance_criteria": [
+        "Uses MapKit to render route polyline",
+        "Map styled appropriately",
+        "Renders to UIImage at share-ready resolution",
+        "Handles workouts with no route",
+        "Unit tests verify image generation",
+        "Typecheck passes"
+      ],
+      "dependencies": ["US-008"],
+      "estimated_complexity": "moderate"
+    },
+    {
+      "id": "US-019",
+      "epic": 6,
+      "title": "Create statistics overlay renderer",
+      "priority": 19,
+      "status": "pending",
+      "acceptance_criteria": [
+        "Renders selected stats with configured font, size, color",
+        "Positions text according to TextPosition setting",
+        "Adds subtle text shadow for readability",
+        "Handles variable number of stats (1-6)",
+        "Unit tests verify text rendering logic",
+        "Typecheck passes"
+      ],
+      "dependencies": ["US-006", "US-005"],
+      "estimated_complexity": "moderate"
+    },
+    {
+      "id": "US-020",
+      "epic": 6,
+      "title": "Create composite image generator",
+      "priority": 20,
+      "status": "pending",
+      "acceptance_criteria": [
+        "ImageGenerator combines background + stats overlay",
+        "Supports all three background types",
+        "Outputs UIImage ready for sharing",
+        "Generates square (1080x1080) and story (1080x1920) formats",
+        "Unit tests verify composition logic",
+        "Typecheck passes"
+      ],
+      "dependencies": ["US-018", "US-019"],
+      "estimated_complexity": "moderate"
+    },
+    {
+      "id": "US-021",
+      "epic": 7,
+      "title": "Implement share sheet integration",
+      "priority": 21,
+      "status": "pending",
+      "acceptance_criteria": [
+        "Share button triggers UIActivityViewController",
+        "Passes generated UIImage",
+        "Includes optional text caption",
+        "Handles share completion/cancellation",
+        "Typecheck passes",
+        "Verify in simulator"
+      ],
+      "dependencies": ["US-020"],
+      "estimated_complexity": "simple"
+    },
+    {
+      "id": "US-022",
+      "epic": 7,
+      "title": "Save image to camera roll option",
+      "priority": 22,
+      "status": "pending",
+      "acceptance_criteria": [
+        "Save to Photos button in share options",
+        "Requests photo library add permission if needed",
+        "Shows success/failure feedback",
+        "Typecheck passes",
+        "Verify in simulator"
+      ],
+      "dependencies": ["US-020", "US-003"],
+      "estimated_complexity": "simple"
+    },
+    {
+      "id": "US-023",
+      "epic": 8,
+      "title": "Create subscription/Pro tier data model",
+      "priority": 23,
+      "status": "pending",
+      "acceptance_criteria": [
+        "UserSubscription SwiftData model: isPro, expirationDate",
+        "SubscriptionService protocol with mock implementation",
+        "isPro returns false in MVP",
+        "Unit tests verify subscription logic",
+        "Typecheck passes"
+      ],
+      "dependencies": ["US-001"],
+      "estimated_complexity": "simple"
+    },
+    {
+      "id": "US-024",
+      "epic": 8,
+      "title": "Create automatic sharing preferences model (stubbed)",
+      "priority": 24,
+      "status": "pending",
+      "acceptance_criteria": [
+        "AutoShareConfig model: isEnabled, destinations, defaultTemplate",
+        "UI shows Pro Feature - Coming Soon",
+        "Architecture allows easy implementation later",
+        "Typecheck passes",
+        "Verify in simulator"
+      ],
+      "dependencies": ["US-023"],
+      "estimated_complexity": "simple"
+    },
+    {
+      "id": "US-025",
+      "epic": 8,
+      "title": "Add Pro feature gate UI",
+      "priority": 25,
+      "status": "pending",
+      "acceptance_criteria": [
+        "Settings screen with Pro section",
+        "Shows locked automatic sharing option",
+        "Upgrade to Pro button (non-functional)",
+        "Clear messaging about upcoming features",
+        "Typecheck passes",
+        "Verify in simulator"
+      ],
+      "dependencies": ["US-023", "US-024"],
+      "estimated_complexity": "simple"
+    },
+    {
+      "id": "US-026",
+      "epic": 9,
+      "title": "Implement onboarding flow",
+      "priority": 26,
+      "status": "pending",
+      "acceptance_criteria": [
+        "3-screen onboarding: Welcome, HealthKit permission, Get Started",
+        "Only shows on first launch",
+        "Can be skipped",
+        "Stores completion in UserDefaults",
+        "Typecheck passes",
+        "Verify in simulator"
+      ],
+      "dependencies": ["US-002"],
+      "estimated_complexity": "simple"
+    },
+    {
+      "id": "US-027",
+      "epic": 9,
+      "title": "Handle HealthKit permission denied state",
+      "priority": 27,
+      "status": "pending",
+      "acceptance_criteria": [
+        "Empty state explains why workouts not showing",
+        "Open Settings button deep-links to app settings",
+        "Re-checks permission on foreground",
+        "Typecheck passes",
+        "Verify in simulator"
+      ],
+      "dependencies": ["US-010"],
+      "estimated_complexity": "simple"
+    },
+    {
+      "id": "US-028",
+      "epic": 9,
+      "title": "Implement error handling and user feedback",
+      "priority": 28,
+      "status": "pending",
+      "acceptance_criteria": [
+        "Toast/alert for transient errors",
+        "Retry options where appropriate",
+        "No silent failures",
+        "Typecheck passes"
+      ],
+      "dependencies": ["US-010", "US-013"],
+      "estimated_complexity": "simple"
+    },
+    {
+      "id": "US-029",
+      "epic": 9,
+      "title": "Add accessibility support",
+      "priority": 29,
+      "status": "pending",
+      "acceptance_criteria": [
+        "All interactive elements have accessibility labels",
+        "Images have accessibility descriptions",
+        "Supports Dynamic Type",
+        "Color contrast meets WCAG AA",
+        "VoiceOver navigation works logically",
+        "Typecheck passes",
+        "Verify with Accessibility Inspector"
+      ],
+      "dependencies": ["US-010", "US-013"],
+      "estimated_complexity": "moderate"
+    }
+  ]
+}
