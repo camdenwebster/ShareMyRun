@@ -10,6 +10,7 @@ import SwiftData
 
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
+    @AppStorage(SharePrivacySettings.removeWatermarkKey) private var removeWatermark = false
     @State private var subscriptionService: SubscriptionServiceProtocol = MockSubscriptionService()
     @State private var isPro: Bool = false
     @State private var showUpgradeAlert: Bool = false
@@ -23,29 +24,12 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             List {
-                // Pro Section
                 Section {
-                    ProFeatureRow(
-                        title: "Remove Watermark",
-                        description: "Export images without the ShareMyRun watermark",
-                        isLocked: !isPro
-                    ) {
-                        showUpgradeAlert = true
-                    }
-
-                    ProFeatureRow(
-                        title: "Custom Themes",
-                        description: "Access exclusive styling presets",
-                        isLocked: !isPro
-                    ) {
-                        showUpgradeAlert = true
-                    }
+                    Toggle("Remove Watermark", isOn: $removeWatermark)
                 } header: {
-                    Text("Pro Features")
+                    Text("Sharing")
                 } footer: {
-                    if !isPro {
-                        Text("Upgrade to Pro to unlock these features and support development.")
-                    }
+                    Text("When enabled, shared images are exported without the ShareMyRun watermark.")
                 }
 
                 Section {
@@ -87,6 +71,10 @@ struct SettingsView: View {
                     Text("Auto-Share (Beta)")
                 } footer: {
                     Text("Use Shortcuts automation: When Workout Ends -> Generate Latest Workout Share -> Send Message.")
+                }
+
+                Section("Privacy") {
+                    RoutePrivacySettingView()
                 }
 
                 // Upgrade Section
@@ -248,38 +236,44 @@ struct SettingsView: View {
     }
 }
 
-// MARK: - Pro Feature Row
+private struct RoutePrivacySettingView: View {
+    @AppStorage(SharePrivacySettings.routeRedactionDistanceKey)
+    private var routeRedactionDistanceSliderValue: Double = RouteRedactionDistance.defaultValue.sliderValue
 
-private struct ProFeatureRow: View {
-    let title: String
-    let description: String
-    let isLocked: Bool
-    let onTap: () -> Void
+    private var selectedDistance: RouteRedactionDistance {
+        RouteRedactionDistance(sliderValue: routeRedactionDistanceSliderValue)
+    }
 
     var body: some View {
-        Button(action: onTap) {
+        VStack(alignment: .leading, spacing: 10) {
             HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(title)
-                        .foregroundStyle(isLocked ? .secondary : .primary)
-
-                    Text(description)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
+                Text("Hide Start/End")
                 Spacer()
-
-                if isLocked {
-                    Image(systemName: "lock.fill")
-                        .foregroundStyle(.secondary)
-                } else {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
-                }
+                Text(selectedDistance.displayName)
+                    .foregroundStyle(.secondary)
             }
+
+            Slider(
+                value: $routeRedactionDistanceSliderValue,
+                in: 0...Double(RouteRedactionDistance.allCases.count - 1),
+                step: 1
+            ) {
+                Text("Hide Start/End")
+            } minimumValueLabel: {
+                Text(RouteRedactionDistance.eighthMile.displayName)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            } maximumValueLabel: {
+                Text(RouteRedactionDistance.oneMile.displayName)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+
+            Text("Moves the visible route start and finish away from your actual location when sharing route maps.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
-        .disabled(!isLocked)
+        .padding(.vertical, 4)
     }
 }
 

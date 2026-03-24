@@ -300,8 +300,7 @@ final class AutoShareCoordinator {
             font: source.font,
             fontSize: source.fontSize,
             textColor: source.textColor,
-            textPosition: source.textPosition,
-            routeRedactionDistance: source.routeRedactionDistance
+            textPosition: source.textPosition
         )
 
         configuration.featuredStatistic =

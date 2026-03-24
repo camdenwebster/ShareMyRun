@@ -150,33 +150,6 @@ struct AutoShareCoordinatorTests {
         #expect((storedJob?.attemptCount ?? 0) == 1)
     }
 
-    @Test("Auto-share preserves route redaction distance from the workout configuration")
-    func autoSharePreservesRouteRedactionDistance() async throws {
-        let container = try AppModelContainer.make(isStoredInMemoryOnly: true)
-        let context = ModelContext(container)
-        let fixedNow = Date()
-        let imageGenerator = RecordingAutoShareImageGenerator()
-        let coordinator = AutoShareCoordinator(
-            imageGenerator: imageGenerator,
-            now: { fixedNow }
-        )
-
-        let workout = makeWorkout(
-            id: "route-redaction-1",
-            endDate: fixedNow.addingTimeInterval(-60)
-        )
-        let shareConfiguration = ShareConfiguration.defaultConfiguration(for: workout)
-        shareConfiguration.routeRedactionDistance = .oneMile
-        workout.shareConfiguration = shareConfiguration
-        context.insert(workout)
-        context.insert(shareConfiguration)
-
-        _ = try await coordinator.generateImageForWorkout(workout, modelContext: context)
-        let recordedDistance = await imageGenerator.recordedDistance()
-
-        #expect(recordedDistance == .oneMile)
-    }
-
     private func makeWorkout(id: String, endDate: Date) -> Workout {
         Workout(
             healthKitID: id,
@@ -216,29 +189,6 @@ private struct MockAutoShareImageGenerator: AutoShareImageGenerating {
             UIColor.systemGreen.setFill()
             context.fill(CGRect(origin: .zero, size: format.size))
         }
-    }
-}
-
-private actor RecordingAutoShareImageGenerator: AutoShareImageGenerating {
-    private var lastRouteRedactionDistance: RouteRedactionDistance?
-
-    func generateImage(
-        for workout: Workout,
-        configuration: ShareConfiguration,
-        format: ImageOutputFormat,
-        selectedPhoto: UIImage?
-    ) async throws -> UIImage {
-        lastRouteRedactionDistance = configuration.routeRedactionDistance
-
-        let renderer = UIGraphicsImageRenderer(size: format.size)
-        return renderer.image { context in
-            UIColor.systemBlue.setFill()
-            context.fill(CGRect(origin: .zero, size: format.size))
-        }
-    }
-
-    func recordedDistance() -> RouteRedactionDistance? {
-        lastRouteRedactionDistance
     }
 }
 

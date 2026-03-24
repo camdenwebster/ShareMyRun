@@ -148,12 +148,6 @@ final class ShareEditorViewModel {
         saveConfiguration()
     }
 
-    /// Sets how much of the route is hidden at the start and end.
-    func setRouteRedactionDistance(_ distance: RouteRedactionDistance) {
-        configuration.routeRedactionDistance = distance
-        saveConfiguration()
-    }
-
     /// Whether the route map option is available
     var isRouteMapAvailable: Bool {
         workout.hasRoute

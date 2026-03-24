@@ -47,8 +47,7 @@ final class ImageGenerator {
             for: workout,
             backgroundType: configuration.backgroundType,
             selectedPhoto: selectedPhoto,
-            size: format.size,
-            routeRedactionDistance: configuration.routeRedactionDistance
+            size: format.size
         )
 
         // Prepare statistics
@@ -72,8 +71,15 @@ final class ImageGenerator {
         // Render final image with overlay
         let finalImage = statisticsRenderer.render(onto: backgroundImage, configuration: statsConfig)
 
-        // Add watermark
-        return addWatermark(to: finalImage, size: format.size)
+        guard !SharePrivacySettings.removeWatermark else {
+            return finalImage
+        }
+
+        return addWatermark(
+            to: finalImage,
+            size: format.size,
+            textPosition: configuration.textPosition
+        )
     }
 
     // MARK: - Private Helpers
@@ -83,8 +89,7 @@ final class ImageGenerator {
         for workout: Workout,
         backgroundType: BackgroundType,
         selectedPhoto: UIImage?,
-        size: CGSize,
-        routeRedactionDistance: RouteRedactionDistance
+        size: CGSize
     ) async throws -> UIImage {
         switch backgroundType {
         case .routeMap:
@@ -99,7 +104,7 @@ final class ImageGenerator {
                 mapType: .standard,
                 padding: UIEdgeInsets(top: 60, left: 60, bottom: 60, right: 60),
                 showMarkers: true,
-                redactionDistance: routeRedactionDistance.meters
+                redactionDistance: SharePrivacySettings.routeRedactionDistance.meters
             )
 
             return try await routeMapRenderer.render(coordinates: coordinates, configuration: mapConfig)
@@ -152,7 +157,11 @@ final class ImageGenerator {
     }
 
     /// Adds a subtle watermark to the image
-    private func addWatermark(to image: UIImage, size: CGSize) -> UIImage {
+    private func addWatermark(
+        to image: UIImage,
+        size: CGSize,
+        textPosition: TextPosition
+    ) -> UIImage {
         let renderer = UIGraphicsImageRenderer(size: size)
 
         return renderer.image { context in
@@ -171,10 +180,18 @@ final class ImageGenerator {
 
             let attributedText = NSAttributedString(string: watermarkText, attributes: attributes)
             let textSize = attributedText.size()
+            let padding = size.width / 30
+            let x = size.width - textSize.width - padding
+            let y: CGFloat
 
-            // Position in bottom right corner
-            let x = size.width - textSize.width - (size.width / 30)
-            let y = size.height - textSize.height - (size.width / 30)
+            switch textPosition.watermarkAlignment {
+            case .topTrailing:
+                y = padding
+            case .bottomTrailing:
+                y = size.height - textSize.height - padding
+            default:
+                y = size.height - textSize.height - padding
+            }
 
             attributedText.draw(at: CGPoint(x: x, y: y))
         }

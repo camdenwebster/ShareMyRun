@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import CoreLocation
 import SwiftData
 import SwiftUI
 
@@ -67,6 +66,15 @@ enum TextPosition: String, Codable, CaseIterable, Identifiable {
         case .bottomLeft: return .bottomLeading
         case .bottomRight: return .bottomTrailing
         case .center: return .center
+        }
+    }
+
+    var watermarkAlignment: Alignment {
+        switch self {
+        case .bottomLeft, .bottomRight:
+            return .topTrailing
+        case .topLeft, .topRight, .center:
+            return .bottomTrailing
         }
     }
 
@@ -134,46 +142,6 @@ enum OverlayFont: String, Codable, CaseIterable, Identifiable {
     }
 }
 
-/// Available distances for hiding the real route start and end points.
-enum RouteRedactionDistance: String, Codable, CaseIterable, Identifiable {
-    case eighthMile
-    case quarterMile
-    case halfMile
-    case oneMile
-
-    var id: String { rawValue }
-
-    var displayName: String {
-        switch self {
-        case .eighthMile:
-            return "1/8 mi"
-        case .quarterMile:
-            return "1/4 mi"
-        case .halfMile:
-            return "1/2 mi"
-        case .oneMile:
-            return "1 mi"
-        }
-    }
-
-    var measurement: Measurement<UnitLength> {
-        switch self {
-        case .eighthMile:
-            return .init(value: 0.125, unit: .miles)
-        case .quarterMile:
-            return .init(value: 0.25, unit: .miles)
-        case .halfMile:
-            return .init(value: 0.5, unit: .miles)
-        case .oneMile:
-            return .init(value: 1, unit: .miles)
-        }
-    }
-
-    var meters: CLLocationDistance {
-        measurement.converted(to: .meters).value
-    }
-}
-
 /// SwiftData model storing the user's sharing preferences for a workout
 @Model
 final class ShareConfiguration {
@@ -202,7 +170,7 @@ final class ShareConfiguration {
     var textPosition: TextPosition
 
     /// Stored raw value for how much route data is hidden at the start and end.
-    var routeRedactionDistanceRaw: String
+    var routeRedactionDistanceRaw: String?
 
     /// Path to selected photo (if backgroundType is selectedPhoto)
     var selectedPhotoIdentifier: String?
@@ -245,10 +213,17 @@ final class ShareConfiguration {
     /// Distance hidden from both the start and end of the route image.
     var routeRedactionDistance: RouteRedactionDistance {
         get {
-            RouteRedactionDistance(rawValue: routeRedactionDistanceRaw) ?? .quarterMile
+            guard
+                let routeRedactionDistanceRaw,
+                let rawValue = Int(routeRedactionDistanceRaw),
+                let routeRedactionDistance = RouteRedactionDistance(rawValue: rawValue)
+            else {
+                return .defaultValue
+            }
+            return routeRedactionDistance
         }
         set {
-            routeRedactionDistanceRaw = newValue.rawValue
+            routeRedactionDistanceRaw = String(newValue.rawValue)
         }
     }
 
@@ -262,7 +237,7 @@ final class ShareConfiguration {
         fontSize: CGFloat = 18,
         textColor: Color = .white,
         textPosition: TextPosition = .bottomLeft,
-        routeRedactionDistance: RouteRedactionDistance = .quarterMile
+        routeRedactionDistance: RouteRedactionDistance = .defaultValue
     ) {
         self.workout = workout
         self.selectedStatisticsRaw = selectedStatistics.map { $0.rawValue }
@@ -272,7 +247,7 @@ final class ShareConfiguration {
         self.fontSize = fontSize
         self.textColorHex = textColor.toHex() ?? "#FFFFFF"
         self.textPosition = textPosition
-        self.routeRedactionDistanceRaw = routeRedactionDistance.rawValue
+        self.routeRedactionDistanceRaw = String(routeRedactionDistance.rawValue)
         self.lastModified = Date()
     }
 
@@ -288,7 +263,7 @@ final class ShareConfiguration {
             fontSize: 18,
             textColor: .white,
             textPosition: .bottomLeft,
-            routeRedactionDistance: .quarterMile
+            routeRedactionDistance: .defaultValue
         )
     }
 }

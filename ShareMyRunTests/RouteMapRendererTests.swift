@@ -6,17 +6,27 @@
 //
 
 import CoreLocation
+import Foundation
 import Testing
 @testable import ShareMyRun
 
 @Suite("Route Map Renderer Tests")
 struct RouteMapRendererTests {
 
-    @Test("Share configuration defaults route redaction to a quarter mile")
-    func shareConfigurationDefaultsToQuarterMile() {
-        let configuration = ShareConfiguration.defaultConfiguration()
+    @Test("Privacy settings default route redaction to a quarter mile")
+    func privacySettingsDefaultToQuarterMile() {
+        let previousValue = UserDefaults.standard.object(forKey: SharePrivacySettings.routeRedactionDistanceKey)
+        defer {
+            if let previousValue {
+                UserDefaults.standard.set(previousValue, forKey: SharePrivacySettings.routeRedactionDistanceKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: SharePrivacySettings.routeRedactionDistanceKey)
+            }
+        }
 
-        #expect(configuration.routeRedactionDistance == .quarterMile)
+        UserDefaults.standard.removeObject(forKey: SharePrivacySettings.routeRedactionDistanceKey)
+
+        #expect(SharePrivacySettings.routeRedactionDistance == .quarterMile)
     }
 
     @Test("Route redaction trims both ends of the route")

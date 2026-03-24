@@ -20,6 +20,7 @@ struct ShareEditorView: View {
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var selectedCustomizationTab = 0
     @State private var showFormatPicker = false
+    @ScaledMetric(relativeTo: .body) private var customizationSheetHeight = 430
 
     init(workout: Workout) {
         self.workout = workout
@@ -27,25 +28,21 @@ struct ShareEditorView: View {
     }
 
     var body: some View {
-        GeometryReader { geometry in
-            let layout = editorLayout(for: geometry.size, selectedTab: selectedCustomizationTab)
+        VStack(spacing: 0) {
+            PreviewArea(viewModel: viewModel)
+                .frame(maxHeight: .infinity)
 
-            VStack(spacing: 0) {
-                PreviewArea(viewModel: viewModel)
-                    .frame(height: layout.previewHeight)
+            Divider()
 
-                Divider()
-
-                CustomizationSheet(
-                    viewModel: viewModel,
-                    selectedPhotoItem: $selectedPhotoItem,
-                    selectedTab: $selectedCustomizationTab
-                )
-                    .frame(height: layout.controlsHeight)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .background(Color(.systemGroupedBackground))
+            CustomizationSheet(
+                viewModel: viewModel,
+                selectedPhotoItem: $selectedPhotoItem,
+                selectedTab: $selectedCustomizationTab
+            )
+            .frame(height: customizationSheetHeight)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(Color(.systemGroupedBackground))
         .navigationTitle("Share Workout")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -97,7 +94,7 @@ struct ShareEditorView: View {
         }
         .sheet(isPresented: $viewModel.showShareSheet) {
             if let image = viewModel.generatedImage {
-                ShareSheet(image: image, workout: workout)
+                ShareSheet(image: image)
             }
         }
     }
@@ -116,24 +113,6 @@ struct ShareEditorView: View {
         }
     }
 
-    private func editorLayout(for size: CGSize, selectedTab: Int) -> (previewHeight: CGFloat, controlsHeight: CGFloat) {
-        let isStyleTabSelected = selectedTab == 2
-        let minControlsHeight: CGFloat = isStyleTabSelected ? 300 : 270
-        let maxControlsHeight: CGFloat = isStyleTabSelected ? 380 : 360
-        let fallbackMinControlsHeight: CGFloat = isStyleTabSelected ? 250 : 220
-        let minimumPreviewHeight: CGFloat = 180
-
-        var controlsHeight = min(max(size.height * 0.42, minControlsHeight), maxControlsHeight)
-
-        if size.height - controlsHeight < minimumPreviewHeight {
-            controlsHeight = max(fallbackMinControlsHeight, size.height - minimumPreviewHeight)
-        }
-
-        controlsHeight = min(max(controlsHeight, 0), size.height)
-        let previewHeight = max(0, size.height - controlsHeight)
-
-        return (previewHeight, controlsHeight)
-    }
 }
 
 // MARK: - Preview Area
@@ -152,7 +131,7 @@ private struct PreviewArea: View {
                     height: previewHeight(for: geometry)
                 )
                 .background(Color(.systemBackground))
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .clipShape(.rect(cornerRadius: 12))
                 .shadow(radius: 10)
 
                 if viewModel.isGeneratingImage {
@@ -203,11 +182,18 @@ private struct PreviewArea: View {
 
 private struct PreviewContent: View {
     let viewModel: ShareEditorViewModel
+    @AppStorage(SharePrivacySettings.removeWatermarkKey) private var removeWatermark = false
 
     var body: some View {
         GeometryReader { geometry in
+            let metrics = ShareImagePreviewMetrics(
+                previewSize: geometry.size,
+                outputFormat: viewModel.outputFormat,
+                baseFontSize: viewModel.configuration.fontSize
+            )
+
             ZStack {
-                backgroundView
+                backgroundView(metrics: metrics)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .clipped()
 
@@ -217,38 +203,48 @@ private struct PreviewContent: View {
                         startPoint: gradientStartPoint,
                         endPoint: gradientEndPoint
                     )
-                    .frame(height: gradientHeight(for: geometry.size.height))
+                    .frame(height: gradientHeight(for: geometry.size.height, metrics: metrics))
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: gradientAlignment)
                 }
 
-                HStack(alignment: verticalAlignment, spacing: 12) {
+                HStack(alignment: verticalAlignment, spacing: metrics.columnSpacing) {
                     if primaryStackOnLeading {
-                        statisticsOverlay
+                        statisticsOverlay(metrics: metrics)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                        featuredStatisticOverlay
+                        featuredStatisticOverlay(metrics: metrics)
                             .frame(maxWidth: .infinity, alignment: .trailing)
                     } else {
-                        featuredStatisticOverlay
+                        featuredStatisticOverlay(metrics: metrics)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                        statisticsOverlay
+                        statisticsOverlay(metrics: metrics)
                             .frame(maxWidth: .infinity, alignment: .trailing)
                     }
                 }
-                .padding()
+                .padding(metrics.overlayPadding)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: viewModel.configuration.textPosition.alignment)
+
+                if !removeWatermark {
+                    watermark(metrics: metrics)
+                        .padding(metrics.watermarkPadding)
+                        .frame(
+                            maxWidth: .infinity,
+                            maxHeight: .infinity,
+                            alignment: viewModel.configuration.textPosition.watermarkAlignment
+                        )
+                }
             }
             .frame(width: geometry.size.width, height: geometry.size.height)
         }
     }
 
     @ViewBuilder
-    private var backgroundView: some View {
+    private func backgroundView(metrics: ShareImagePreviewMetrics) -> some View {
         switch viewModel.configuration.backgroundType {
         case .routeMap:
             if let coordinates = viewModel.workout.routeCoordinates, coordinates.count >= 2 {
                 RouteMapPreview(
                     coordinates: coordinates,
-                    redactionDistance: viewModel.configuration.routeRedactionDistance
+                    outputFormat: viewModel.outputFormat
                 )
             } else {
                 ZStack {
@@ -303,39 +299,48 @@ private struct PreviewContent: View {
     }
 
     @ViewBuilder
-    private var statisticsOverlay: some View {
-        VStack(alignment: alignment, spacing: 4) {
+    private func statisticsOverlay(metrics: ShareImagePreviewMetrics) -> some View {
+        VStack(alignment: alignment, spacing: metrics.lineSpacing) {
             ForEach(sideStatistics, id: \.self) { stat in
-                HStack(spacing: 4) {
+                HStack(spacing: metrics.iconSpacing) {
                     Image(systemName: stat.iconName)
                     Text(stat.format(value: stat.getValue(from: viewModel.workout)))
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
                 }
-                .font(overlayFont(size: viewModel.configuration.fontSize, weight: .semibold))
+                .font(overlayFont(size: metrics.valueFontSize, weight: .semibold))
                 .foregroundStyle(viewModel.configuration.textColor)
-                .shadow(color: .black.opacity(0.5), radius: 2, x: 1, y: 1)
+                .shadow(
+                    color: .black.opacity(0.5),
+                    radius: metrics.shadowRadius,
+                    x: metrics.shadowOffset,
+                    y: metrics.shadowOffset
+                )
             }
         }
     }
 
     @ViewBuilder
-    private var featuredStatisticOverlay: some View {
+    private func featuredStatisticOverlay(metrics: ShareImagePreviewMetrics) -> some View {
         if let featuredStatistic {
-            VStack(alignment: .center, spacing: 2) {
+            VStack(alignment: .center, spacing: metrics.featuredSpacing) {
                 Text(featuredStatistic.format(value: featuredStatistic.getValue(from: viewModel.workout)))
-                    .font(overlayFont(size: viewModel.configuration.fontSize * 1.65, weight: .heavy))
+                    .font(overlayFont(size: metrics.featuredValueFontSize, weight: .heavy))
                     .lineLimit(1)
                     .minimumScaleFactor(0.55)
                 Text(featuredStatistic.displayName.uppercased())
-                    .font(overlayFont(size: viewModel.configuration.fontSize * 0.60, weight: .semibold))
-                    .tracking(0.5)
+                    .font(overlayFont(size: metrics.featuredLabelFontSize, weight: .semibold))
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
             }
             .multilineTextAlignment(primaryStackOnLeading ? .trailing : .leading)
             .foregroundStyle(viewModel.configuration.textColor)
-            .shadow(color: .black.opacity(0.55), radius: 2, x: 1, y: 1)
+            .shadow(
+                color: .black.opacity(0.55),
+                radius: metrics.shadowRadius,
+                x: metrics.shadowOffset,
+                y: metrics.shadowOffset
+            )
         }
     }
 
@@ -433,85 +438,185 @@ private struct PreviewContent: View {
         }
     }
 
-    private func gradientHeight(for containerHeight: CGFloat) -> CGFloat {
-        let statCount = max(sideStatistics.count, 1)
-        let textHeight = (CGFloat(statCount) * viewModel.configuration.fontSize * 1.3) + 32
-        let featuredHeight = viewModel.configuration.fontSize * 2.5
-        return min(containerHeight * 0.75, max(containerHeight * 0.40, max(textHeight, featuredHeight) + 32))
+    private func gradientHeight(
+        for containerHeight: CGFloat,
+        metrics: ShareImagePreviewMetrics
+    ) -> CGFloat {
+        let textHeight: CGFloat
+        if sideStatistics.isEmpty {
+            textHeight = 0
+        } else {
+            textHeight =
+                (CGFloat(sideStatistics.count) * metrics.valueFontSize)
+                + (CGFloat(max(sideStatistics.count - 1, 0)) * metrics.lineSpacing)
+        }
+
+        let featuredHeight = featuredStatistic == nil
+            ? 0
+            : metrics.featuredValueFontSize + metrics.featuredLabelFontSize + metrics.featuredSpacing
+
+        let contentHeight = max(textHeight, featuredHeight)
+        let minimumHeight: CGFloat = containerHeight * 0.40
+        let preferredHeight = contentHeight + (containerHeight * 0.12)
+
+        return min(containerHeight * 0.75, max(minimumHeight, preferredHeight))
+    }
+
+    private func watermark(metrics: ShareImagePreviewMetrics) -> some View {
+        Text("ShareMyRun")
+            .font(.system(size: metrics.watermarkFontSize, weight: .medium))
+            .foregroundStyle(.white.opacity(0.6))
+            .shadow(
+                color: .black.opacity(0.35),
+                radius: metrics.shadowRadius,
+                x: metrics.shadowOffset,
+                y: metrics.shadowOffset
+            )
+    }
+}
+
+private struct ShareImagePreviewMetrics {
+    let previewSize: CGSize
+    let outputFormat: ImageOutputFormat
+    let baseFontSize: CGFloat
+
+    private var outputScale: CGFloat {
+        guard outputFormat.size.width > 0 else { return 0 }
+        return previewSize.width / outputFormat.size.width
+    }
+
+    private var designScale: CGFloat {
+        previewSize.width / 375
+    }
+
+    var valueFontSize: CGFloat {
+        baseFontSize * designScale
+    }
+
+    var featuredValueFontSize: CGFloat {
+        valueFontSize * 1.85
+    }
+
+    var featuredLabelFontSize: CGFloat {
+        valueFontSize * 0.60
+    }
+
+    var overlayPadding: CGFloat {
+        16 * designScale
+    }
+
+    var watermarkPadding: CGFloat {
+        12 * designScale
+    }
+
+    var columnSpacing: CGFloat {
+        12 * designScale
+    }
+
+    var lineSpacing: CGFloat {
+        8 * outputScale
+    }
+
+    var iconSpacing: CGFloat {
+        10 * outputScale
+    }
+
+    var featuredSpacing: CGFloat {
+        6 * outputScale
+    }
+
+    var shadowRadius: CGFloat {
+        3 * outputScale
+    }
+
+    var shadowOffset: CGFloat {
+        outputScale
+    }
+
+    var watermarkFontSize: CGFloat {
+        previewSize.width / 40
     }
 }
 
 private struct RouteMapPreview: View {
     let coordinates: [RouteCoordinate]
-    let redactionDistance: RouteRedactionDistance
+    let outputFormat: ImageOutputFormat
+    @AppStorage(SharePrivacySettings.routeRedactionDistanceKey)
+    private var routeRedactionDistanceSliderValue: Double = RouteRedactionDistance.defaultValue.sliderValue
+    @State private var renderedImage: UIImage?
+    @State private var isRendering = false
 
     var body: some View {
-        let clCoordinates = RouteMapRenderer.redactedCoordinates(
-            from: coordinates.map(\.coordinate),
-            distance: redactionDistance.meters
-        )
+        ZStack {
+            if let renderedImage {
+                Image(uiImage: renderedImage)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                Color(.systemGray6)
 
-        Map(initialPosition: .region(region(for: clCoordinates)), interactionModes: []) {
-            MapPolyline(coordinates: clCoordinates)
-                .stroke(Color.blue, lineWidth: 4)
-
-            if let start = clCoordinates.first {
-                Annotation("Start", coordinate: start) {
-                    Circle()
-                        .fill(Color.green)
-                        .frame(width: 10, height: 10)
-                        .overlay {
-                            Circle()
-                                .stroke(Color.white, lineWidth: 2)
-                        }
+                if isRendering {
+                    ProgressView()
+                        .padding(12)
+                        .background(.ultraThinMaterial, in: Capsule())
+                } else {
+                    VStack(spacing: 8) {
+                        Image(systemName: "map")
+                            .font(.title2)
+                            .foregroundStyle(.secondary)
+                        Text("Loading Map")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
-
-            if let end = clCoordinates.last {
-                Annotation("End", coordinate: end) {
-                    Circle()
-                        .fill(Color.red)
-                        .frame(width: 10, height: 10)
-                        .overlay {
-                            Circle()
-                                .stroke(Color.white, lineWidth: 2)
-                        }
-                }
-            }
+        }
+        .task(id: renderRequestID) {
+            await renderPreview()
         }
     }
 
-    private func region(for coordinates: [CLLocationCoordinate2D]) -> MKCoordinateRegion {
-        guard let first = coordinates.first else {
-            return MKCoordinateRegion(
-                center: CLLocationCoordinate2D(latitude: 37.3349, longitude: -122.0090),
-                span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
+    private var renderRequestID: String {
+        let first = coordinates.first.map { "\($0.latitude),\($0.longitude)" } ?? "none"
+        let last = coordinates.last.map { "\($0.latitude),\($0.longitude)" } ?? "none"
+        return [
+            outputFormat.rawValue,
+            String(routeRedactionDistanceSliderValue),
+            String(coordinates.count),
+            first,
+            last
+        ]
+        .joined(separator: "|")
+    }
+
+    private func renderPreview() async {
+        guard coordinates.count >= 2 else {
+            renderedImage = nil
+            return
+        }
+
+        isRendering = true
+        defer { isRendering = false }
+
+        let size = outputFormat.size
+        let configuration = RouteMapRenderer.Configuration(
+            size: size,
+            routeColor: .systemBlue,
+            routeLineWidth: size.width / 270,
+            mapType: .standard,
+            padding: UIEdgeInsets(top: 60, left: 60, bottom: 60, right: 60),
+            showMarkers: true,
+            redactionDistance: RouteRedactionDistance(sliderValue: routeRedactionDistanceSliderValue).meters
+        )
+
+        do {
+            renderedImage = try await RouteMapRenderer().render(
+                coordinates: coordinates,
+                configuration: configuration
             )
+        } catch {
+            renderedImage = nil
         }
-
-        var minLatitude = first.latitude
-        var maxLatitude = first.latitude
-        var minLongitude = first.longitude
-        var maxLongitude = first.longitude
-
-        for coordinate in coordinates {
-            minLatitude = min(minLatitude, coordinate.latitude)
-            maxLatitude = max(maxLatitude, coordinate.latitude)
-            minLongitude = min(minLongitude, coordinate.longitude)
-            maxLongitude = max(maxLongitude, coordinate.longitude)
-        }
-
-        let center = CLLocationCoordinate2D(
-            latitude: (minLatitude + maxLatitude) / 2,
-            longitude: (minLongitude + maxLongitude) / 2
-        )
-        let latitudeDelta = max((maxLatitude - minLatitude) * 1.35, 0.005)
-        let longitudeDelta = max((maxLongitude - minLongitude) * 1.35, 0.005)
-
-        return MKCoordinateRegion(
-            center: center,
-            span: MKCoordinateSpan(latitudeDelta: latitudeDelta, longitudeDelta: longitudeDelta)
-        )
     }
 }
 
@@ -671,46 +776,6 @@ private struct BackgroundTab: View {
             }
             .padding(.horizontal, 12)
 
-            if viewModel.isRouteMapAvailable {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Hide Start/End")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-
-                    LazyVGrid(
-                        columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 2),
-                        spacing: 8
-                    ) {
-                        ForEach(RouteRedactionDistance.allCases) { distance in
-                            Button {
-                                viewModel.setRouteRedactionDistance(distance)
-                            } label: {
-                                Text(distance.displayName)
-                                    .font(.caption)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 8)
-                                    .background(
-                                        viewModel.configuration.routeRedactionDistance == distance
-                                            ? Color.accentColor.opacity(0.2)
-                                            : Color(.systemGray6)
-                                    )
-                                    .clipShape(.rect(cornerRadius: 8))
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel("Hide \(distance.displayName) from each end")
-                            .accessibilityAddTraits(
-                                viewModel.configuration.routeRedactionDistance == distance ? .isSelected : []
-                            )
-                        }
-                    }
-
-                    Text("Moves the visible route start and finish away from your actual location.")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.horizontal, 12)
-            }
-
             if !viewModel.isRouteMapAvailable {
                 Text("Route map unavailable - this workout has no GPS data")
                     .font(.caption)
@@ -772,15 +837,15 @@ private struct StyleTab: View {
     let viewModel: ShareEditorViewModel
 
     var body: some View {
-        VStack(spacing: 10) {
-            VStack(alignment: .leading, spacing: 6) {
+        VStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text("Font")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
                 LazyVGrid(
                     columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 4),
-                    spacing: 8
+                    spacing: 6
                 ) {
                     ForEach(OverlayFont.allCases) { font in
                         Button {
@@ -795,7 +860,7 @@ private struct StyleTab: View {
                                     .minimumScaleFactor(0.7)
                             }
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 6)
+                            .padding(.vertical, 4)
                             .background(viewModel.configuration.font == font ? Color.accentColor.opacity(0.2) : Color(.systemGray6))
                             .clipShape(RoundedRectangle(cornerRadius: 8))
                         }
@@ -806,7 +871,7 @@ private struct StyleTab: View {
                 }
             }
 
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Text("Size")
                         .font(.caption)
@@ -829,14 +894,14 @@ private struct StyleTab: View {
                 .accessibilityValue("\(Int(viewModel.configuration.fontSize)) points")
             }
 
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text("Position")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
                 LazyVGrid(
                     columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3),
-                    spacing: 8
+                    spacing: 6
                 ) {
                     ForEach(TextPosition.allCases) { position in
                         Button {
@@ -847,7 +912,7 @@ private struct StyleTab: View {
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.7)
                                 .frame(maxWidth: .infinity)
-                                .padding(.vertical, 6)
+                                .padding(.vertical, 5)
                                 .background(viewModel.configuration.textPosition == position ? Color.accentColor.opacity(0.2) : Color(.systemGray6))
                                 .clipShape(RoundedRectangle(cornerRadius: 8))
                         }
@@ -885,12 +950,9 @@ private struct StyleTab: View {
 
 private struct ShareSheet: UIViewControllerRepresentable {
     let image: UIImage
-    let workout: Workout
 
     func makeUIViewController(context: Context) -> UIActivityViewController {
-        let caption = "\(workout.type.displayName) - \(workout.formattedDuration)"
-        let items: [Any] = [image, caption]
-        return UIActivityViewController(activityItems: items, applicationActivities: nil)
+        UIActivityViewController(activityItems: [image], applicationActivities: nil)
     }
 
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
