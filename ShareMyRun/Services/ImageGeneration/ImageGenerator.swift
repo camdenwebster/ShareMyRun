@@ -172,28 +172,56 @@ final class ImageGenerator {
             let watermarkText = "ShareMyRun"
             let fontSize = size.width / 40 // Subtle size
             let font = UIFont.systemFont(ofSize: fontSize, weight: .medium)
+            let shadow = NSShadow()
+            shadow.shadowColor = UIColor.black.withAlphaComponent(0.45)
+            shadow.shadowOffset = CGSize(width: 0, height: fontSize * 0.08)
+            shadow.shadowBlurRadius = fontSize * 0.2
 
             let attributes: [NSAttributedString.Key: Any] = [
                 .font: font,
-                .foregroundColor: UIColor.white.withAlphaComponent(0.6)
+                .foregroundColor: UIColor.white.withAlphaComponent(0.88),
+                .shadow: shadow
             ]
 
             let attributedText = NSAttributedString(string: watermarkText, attributes: attributes)
             let textSize = attributedText.size()
-            let padding = size.width / 30
-            let x = size.width - textSize.width - padding
-            let y: CGFloat
+            let outerPadding = size.width / 30
+            let horizontalInset = fontSize * 0.55
+            let verticalInset = fontSize * 0.35
+            let badgeSize = CGSize(
+                width: textSize.width + (horizontalInset * 2),
+                height: textSize.height + (verticalInset * 2)
+            )
+            let badgeX = size.width - badgeSize.width - outerPadding
+            let badgeY: CGFloat
 
             switch textPosition.watermarkAlignment {
             case .topTrailing:
-                y = padding
+                badgeY = outerPadding
             case .bottomTrailing:
-                y = size.height - textSize.height - padding
+                badgeY = size.height - badgeSize.height - outerPadding
             default:
-                y = size.height - textSize.height - padding
+                badgeY = size.height - badgeSize.height - outerPadding
             }
 
-            attributedText.draw(at: CGPoint(x: x, y: y))
+            let badgeRect = CGRect(origin: CGPoint(x: badgeX, y: badgeY), size: badgeSize)
+            let badgePath = UIBezierPath(
+                roundedRect: badgeRect,
+                cornerRadius: badgeSize.height / 2
+            )
+
+            context.cgContext.saveGState()
+            context.cgContext.setFillColor(UIColor.black.withAlphaComponent(0.24).cgColor)
+            context.cgContext.addPath(badgePath.cgPath)
+            context.cgContext.fillPath()
+            context.cgContext.restoreGState()
+
+            attributedText.draw(
+                at: CGPoint(
+                    x: badgeRect.minX + horizontalInset,
+                    y: badgeRect.minY + verticalInset
+                )
+            )
         }
     }
 }

@@ -465,11 +465,14 @@ private struct PreviewContent: View {
     private func watermark(metrics: ShareImagePreviewMetrics) -> some View {
         Text("ShareMyRun")
             .font(.system(size: metrics.watermarkFontSize, weight: .medium))
-            .foregroundStyle(.white.opacity(0.6))
+            .foregroundStyle(.white.opacity(0.88))
+            .padding(.horizontal, metrics.watermarkHorizontalInset)
+            .padding(.vertical, metrics.watermarkVerticalInset)
+            .background(.black.opacity(0.24), in: Capsule())
             .shadow(
-                color: .black.opacity(0.35),
+                color: .black.opacity(0.45),
                 radius: metrics.shadowRadius,
-                x: metrics.shadowOffset,
+                x: 0,
                 y: metrics.shadowOffset
             )
     }
@@ -507,6 +510,14 @@ private struct ShareImagePreviewMetrics {
 
     var watermarkPadding: CGFloat {
         12 * designScale
+    }
+
+    var watermarkHorizontalInset: CGFloat {
+        watermarkFontSize * 0.55
+    }
+
+    var watermarkVerticalInset: CGFloat {
+        watermarkFontSize * 0.35
     }
 
     var columnSpacing: CGFloat {
