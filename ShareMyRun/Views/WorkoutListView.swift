@@ -319,7 +319,7 @@ private struct WorkoutRow: View {
             return workout.startDate.formatted(.dateTime.weekday(.wide))
         }
 
-        return workout.startDate.formatted(.dateTime.month().day().year(.twoDigits))
+        return workout.startDate.formatted(.dateTime.month().day().year(.defaultDigits))
     }
 }
 

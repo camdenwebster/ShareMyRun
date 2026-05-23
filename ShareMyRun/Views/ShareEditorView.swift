@@ -261,9 +261,7 @@ private struct PreviewContent: View {
             }
         case .lastPhoto:
             if let photo = viewModel.lastPhotoPreview {
-                Image(uiImage: photo)
-                    .resizable()
-                    .scaledToFill()
+                PhotoBackgroundView(photo: photo, outputFormat: viewModel.outputFormat)
             } else {
                 ZStack {
                     Color.gray.opacity(0.3)
@@ -279,9 +277,7 @@ private struct PreviewContent: View {
             }
         case .selectedPhoto:
             if let photo = viewModel.selectedPhoto {
-                Image(uiImage: photo)
-                    .resizable()
-                    .scaledToFill()
+                PhotoBackgroundView(photo: photo, outputFormat: viewModel.outputFormat)
             } else {
                 ZStack {
                     Color.gray.opacity(0.3)
@@ -475,6 +471,19 @@ private struct PreviewContent: View {
                 x: 0,
                 y: metrics.shadowOffset
             )
+    }
+}
+
+private struct PhotoBackgroundView: View {
+    let photo: UIImage
+    let outputFormat: ImageOutputFormat
+
+    var body: some View {
+        Image(uiImage: photo)
+            .resizable()
+            .aspectRatio(outputFormat.aspectRatio, contentMode: .fill)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .clipped()
     }
 }
 

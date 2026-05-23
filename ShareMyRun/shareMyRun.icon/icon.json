@@ -1,0 +1,54 @@
+{
+  "fill" : {
+    "automatic-gradient" : "display-p3:0.83687,0.36467,0.34903,1.00000"
+  },
+  "groups" : [
+    {
+      "blend-mode" : "plus-lighter",
+      "blur-material" : null,
+      "hidden" : false,
+      "layers" : [
+        {
+          "blend-mode" : "overlay",
+          "fill" : {
+            "automatic-gradient" : "display-p3:1.00617,0.57157,0.55432,1.00000"
+          },
+          "glass" : false,
+          "hidden" : false,
+          "image-name-specializations" : [
+            {
+              "value" : "Generated Image March 24, 2026 - 10_28AM.png"
+            },
+            {
+              "appearance" : "light",
+              "value" : "Generated Image March 24, 2026 - 10_28AM.png"
+            },
+            {
+              "idiom" : "square",
+              "value" : "Generated Image March 24, 2026 - 10_28AM.png"
+            }
+          ],
+          "name" : "Generated Image March 24, 2026 - 10_28AM",
+          "opacity" : 1
+        }
+      ],
+      "lighting" : "combined",
+      "opacity" : 0.8,
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "specular" : true,
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.5
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "circles" : [
+      "watchOS"
+    ],
+    "squares" : "shared"
+  }
+}

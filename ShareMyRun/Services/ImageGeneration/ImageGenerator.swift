@@ -113,13 +113,13 @@ final class ImageGenerator {
             guard let photo = try await photoService.fetchMostRecentImage() else {
                 throw ImageGeneratorError.noPhotoAvailable
             }
-            return photo
+            return SharePhotoBackgroundRenderer.render(photo, size: size)
 
         case .selectedPhoto:
             guard let photo = selectedPhoto else {
                 throw ImageGeneratorError.noPhotoSelected
             }
-            return photo
+            return SharePhotoBackgroundRenderer.render(photo, size: size)
         }
     }
 
